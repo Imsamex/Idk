@@ -2,13 +2,16 @@
 local workspace = game:GetService("Workspace")
 local players = game:GetService("Players")
 local localPlayer = players.LocalPlayer
+local camera = workspace.CurrentCamera
 local ballName = "SoccerBall"
 local currentBall = nil
 local espParts = {}
 local featureEnabled = {
     autoHit = false,
     espBall = true,
-    hitbox = false
+    hitbox = false,
+    viewBall = false,
+    lockOnBall = false
 }
 
 -- Function to find the ball
@@ -21,11 +24,6 @@ local function findBallInWorkspace()
     return nil
 end
 
--- Function to set ball size
-local function setBallSize(ball, size)
-    ball.Size = size
-end
-
 -- Function to create/update ESP
 local function createOrUpdateESP(ball)
     if espParts[ball] then return end
@@ -35,6 +33,15 @@ local function createOrUpdateESP(ball)
     espPart.AlwaysOnTop = true
     espPart.Adornee = ball
     espPart.Parent = ball
+
+    local ballText = Instance.new("TextLabel")
+    ballText.Size = UDim2.new(1, 0, 0.3, 0)
+    ballText.Position = UDim2.new(0, 0, -0.2, 0)
+    ballText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ballText.TextScaled = true
+    ballText.Text = "Ball"
+    ballText.BackgroundTransparency = 1
+    ballText.Parent = espPart
 
     local distanceText = Instance.new("TextLabel")
     distanceText.Size = UDim2.new(1, 0, 0.3, 0)
@@ -60,130 +67,77 @@ local function createOrUpdateESP(ball)
     end)()
 end
 
--- Function to create/update hitbox
-local function createOrUpdateHitbox(ball)
-    local hitbox = Instance.new("Part")
-    hitbox.Size = Vector3.new(20, 20, 20)  -- Set hitbox size
-    hitbox.Transparency = 1  -- Make hitbox invisible
-    hitbox.CanCollide = false
-    hitbox.Anchored = false
-    hitbox.Parent = workspace
-
-    local bodyPosition = Instance.new("BodyPosition")
-    bodyPosition.MaxForce = Vector3.new(4000, 4000, 4000)
-    bodyPosition.D = 1000
-    bodyPosition.P = 10000
-    bodyPosition.Parent = hitbox
-
-    coroutine.wrap(function()
-        while ball and ball.Parent do
-            hitbox.Position = ball.Position  -- Follow the ball
-            bodyPosition.Position = ball.Position
-            wait(0.1)
-        end
-        if hitbox then
-            hitbox:Destroy()
-        end
-    end)()
-
-    -- Change the ball size when the hitbox is active
-    setBallSize(ball, Vector3.new(20, 20, 20))  -- Resize the ball to 20x20x20
+-- Function to lock the camera onto the ball
+local function camlockToBall(ball)
+    if not featureEnabled.lockOnBall then return end
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CFrame = CFrame.new(camera.CFrame.Position, ball.Position)
 end
 
--- Function to create feature menu GUI
-local function createFeatureMenu()
-    local playerGui = localPlayer:WaitForChild("PlayerGui")
+-- Function to reset the camera
+local function resetCamera()
+    camera.CameraType = Enum.CameraType.Custom
+end
 
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FeatureMenuGui"
-    screenGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
+-- Function to create a UI button to toggle features
+local function createFeatureUI()
+    local screenGui = Instance.new("ScreenGui", localPlayer.PlayerGui)
+    local frame = Instance.new("Frame", screenGui)
     frame.Size = UDim2.new(0, 200, 0, 300)
-    frame.Position = UDim2.new(0, 0, 0, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    frame.Parent = screenGui
+    frame.Position = UDim2.new(0, 10, 0, 10)
+    frame.BackgroundTransparency = 0.3
 
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0.2, 0)
-    title.Text = "Features"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.BackgroundTransparency = 1
-    title.TextScaled = true
-    title.Parent = frame
+    -- Create buttons for each feature
+    local yOffset = 10
 
-    local autoHitButton = Instance.new("TextButton")
-    autoHitButton.Size = UDim2.new(1, 0, 0.2, 0)
-    autoHitButton.Position = UDim2.new(0, 0, 0.2, 0)
-    autoHitButton.Text = "Auto Hit: Off"
-    autoHitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoHitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    autoHitButton.TextScaled = true
-    autoHitButton.Parent = frame
+    local function createButton(name, callback)
+        local button = Instance.new("TextButton", frame)
+        button.Size = UDim2.new(1, 0, 0, 30)
+        button.Position = UDim2.new(0, 0, 0, yOffset)
+        button.Text = name
+        button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.MouseButton1Click:Connect(callback)
+        yOffset = yOffset + 35
+    end
 
-    local espBallButton = Instance.new("TextButton")
-    espBallButton.Size = UDim2.new(1, 0, 0.2, 0)
-    espBallButton.Position = UDim2.new(0, 0, 0.4, 0)
-    espBallButton.Text = "ESP Ball: On"
-    espBallButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espBallButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    espBallButton.TextScaled = true
-    espBallButton.Parent = frame
-
-    local hitboxButton = Instance.new("TextButton")
-    hitboxButton.Size = UDim2.new(1, 0, 0.2, 0)
-    hitboxButton.Position = UDim2.new(0, 0, 0.6, 0)
-    hitboxButton.Text = "Hitbox: Off"
-    hitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hitboxButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    hitboxButton.TextScaled = true
-    hitboxButton.Parent = frame
-
-    autoHitButton.MouseButton1Click:Connect(function()
-        featureEnabled.autoHit = not featureEnabled.autoHit
-        autoHitButton.Text = "Auto Hit: " .. (featureEnabled.autoHit and "On" or "Off")
-    end)
-
-    espBallButton.MouseButton1Click:Connect(function()
+    createButton("Toggle ESP", function()
         featureEnabled.espBall = not featureEnabled.espBall
-        espBallButton.Text = "ESP Ball: " .. (featureEnabled.espBall and "On" or "Off")
     end)
 
-    hitboxButton.MouseButton1Click:Connect(function()
+    createButton("Toggle Hitbox Size", function()
         featureEnabled.hitbox = not featureEnabled.hitbox
-        hitboxButton.Text = "Hitbox: " .. (featureEnabled.hitbox and "On" or "Off")
-        if featureEnabled.hitbox then
-            if currentBall then
-                createOrUpdateHitbox(currentBall)
-            end
-        elseif currentBall then
-            setBallSize(currentBall, Vector3.new(2, 2, 2))  -- Reset ball size if needed
+    end)
+
+    createButton("View Ball", function()
+        featureEnabled.viewBall = not featureEnabled.viewBall
+        if featureEnabled.viewBall then
+            camlockToBall(currentBall)
+        else
+            resetCamera()
         end
+    end)
+
+    createButton("Lock on Ball", function()
+        featureEnabled.lockOnBall = not featureEnabled.lockOnBall
     end)
 end
 
--- Main loop
-createFeatureMenu()
-
+-- Main loop to continuously search for the ball, create/update ESP, and handle features
 while true do
     local ball = findBallInWorkspace()
     if ball then
         if not currentBall or currentBall ~= ball then
             currentBall = ball
-            if featureEnabled.espBall then
-                createOrUpdateESP(ball)
-            end
-            if featureEnabled.hitbox then
-                createOrUpdateHitbox(ball)
-            end
-        end
-        if featureEnabled.espBall then
             createOrUpdateESP(ball)
         end
-        if featureEnabled.hitbox then
-            createOrUpdateHitbox(ball)
+
+        -- Handle camlock
+        if featureEnabled.lockOnBall then
+            camlockToBall(ball)
         end
     else
+        -- Ball not found
         currentBall = nil
         for _, espData in pairs(espParts) do
             espData.esp:Destroy()
@@ -193,3 +147,6 @@ while true do
 
     wait(0.1)
 end
+
+-- Create the feature UI
+createFeatureUI()
