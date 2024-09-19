@@ -10,7 +10,7 @@ local featureEnabled = {
     autoHit = false,
     espBall = true,
     hitbox = false,
-    viewBall = false,
+    viewBall = false
 }
 
 -- Function to find the ball
@@ -21,6 +21,11 @@ local function findBallInWorkspace()
         end
     end
     return nil
+end
+
+-- Function to set ball size
+local function setBallSize(ball, size)
+    ball.Size = size
 end
 
 -- Function to create/update ESP
@@ -64,11 +69,6 @@ local function createOrUpdateESP(ball)
             espParts[ball] = nil
         end
     end)()
-end
-
--- Function to set ball size
-local function setBallSize(ball, size)
-    ball.Size = size
 end
 
 -- Function to create a UI button to toggle features
