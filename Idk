@@ -11,7 +11,6 @@ local featureEnabled = {
     espBall = true,
     hitbox = false,
     viewBall = false,
-    lockOnBall = false
 }
 
 -- Function to find the ball
@@ -67,28 +66,33 @@ local function createOrUpdateESP(ball)
     end)()
 end
 
--- Function to lock the camera onto the ball
-local function camlockToBall(ball)
-    if not featureEnabled.lockOnBall then return end
-    camera.CameraType = Enum.CameraType.Scriptable
-    camera.CFrame = CFrame.new(camera.CFrame.Position, ball.Position)
-end
-
--- Function to reset the camera
-local function resetCamera()
-    camera.CameraType = Enum.CameraType.Custom
+-- Function to set ball size
+local function setBallSize(ball, size)
+    ball.Size = size
 end
 
 -- Function to create a UI button to toggle features
 local function createFeatureUI()
-    local screenGui = Instance.new("ScreenGui", localPlayer.PlayerGui)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FeatureUI"
+    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
     local frame = Instance.new("Frame", screenGui)
     frame.Size = UDim2.new(0, 200, 0, 300)
     frame.Position = UDim2.new(0, 10, 0, 10)
     frame.BackgroundTransparency = 0.3
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.Text = "Features"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+    title.TextScaled = true
 
     -- Create buttons for each feature
-    local yOffset = 10
+    local yOffset = 40
 
     local function createButton(name, callback)
         local button = Instance.new("TextButton", frame)
@@ -97,6 +101,7 @@ local function createFeatureUI()
         button.Text = name
         button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextScaled = true
         button.MouseButton1Click:Connect(callback)
         yOffset = yOffset + 35
     end
@@ -111,15 +116,12 @@ local function createFeatureUI()
 
     createButton("View Ball", function()
         featureEnabled.viewBall = not featureEnabled.viewBall
-        if featureEnabled.viewBall then
-            camlockToBall(currentBall)
+        if featureEnabled.viewBall and currentBall then
+            camera.CameraType = Enum.CameraType.Scriptable
+            camera.CFrame = CFrame.new(camera.CFrame.Position, currentBall.Position)
         else
-            resetCamera()
+            camera.CameraType = Enum.CameraType.Custom
         end
-    end)
-
-    createButton("Lock on Ball", function()
-        featureEnabled.lockOnBall = not featureEnabled.lockOnBall
     end)
 end
 
@@ -132,17 +134,23 @@ while true do
             createOrUpdateESP(ball)
         end
 
-        -- Handle camlock
-        if featureEnabled.lockOnBall then
-            camlockToBall(ball)
+        -- Handle ball size change and hitbox
+        if featureEnabled.hitbox then
+            setBallSize(ball, Vector3.new(20, 20, 20))  -- Set ball size to 20x20x20
+        else
+            setBallSize(ball, Vector3.new(10, 10, 10))  -- Reset to default size
+        end
+
+        -- Update camera lock if "View Ball" is enabled
+        if featureEnabled.viewBall then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, ball.Position)
         end
     else
-        -- Ball not found
+        -- Ball not found, reset the camera if needed
         currentBall = nil
-        for _, espData in pairs(espParts) do
-            espData.esp:Destroy()
+        if featureEnabled.viewBall then
+            camera.CameraType = Enum.CameraType.Custom
         end
-        espParts = {}
     end
 
     wait(0.1)
