@@ -192,12 +192,19 @@ local function createFeatureMenu()
     end)
 end
 
--- Main loop
-createFeatureMenu()
+-- Function to set ball velocity for scoring
+local function setBallVelocity(ball, direction, speed)
+    local bodyVelocity = ball:FindFirstChildOfClass("BodyVelocity") or Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = direction * speed
+    bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)  -- Adjust as needed
+    bodyVelocity.P = 10000
+    bodyVelocity.Parent = ball
+end
 
+-- Modify the main loop to set the ball velocity when scoring
 while true do
     local ball = findBallInWorkspace()
-    if ball then
+    if ball and ball.Name == "SoccerBall" then
         if not currentBall or currentBall ~= ball then
             currentBall = ball
             if featureEnabled.espBall then
@@ -221,17 +228,37 @@ while true do
         if featureEnabled.viewBall then
             camera.CameraSubject = currentBall
         end
+
+        -- Set ball velocity to score points
+        if featureEnabled.autoHit and currentBall then
+            local direction = (Vector3.new(0, 0, -1) * math.random(0.5, 1) + Vector3.new(math.random(-1, 1), 0, math.random(-1, 1))).Unit
+            local speed = 50  -- Adjust the speed as needed
+            setBallVelocity(currentBall, direction, speed)
+
+            -- Notify where the ball is going
+            local notifyText = Instance.new("BillboardGui")
+            notifyText.Size = UDim2.new(0, 200, 0, 50)
+            notifyText.Adornee = currentBall
+            notifyText.AlwaysOnTop = true
+            notifyText.Parent = currentBall
+
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            textLabel.TextScaled = true
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "Going in direction!"
+            textLabel.Parent = notifyText
+
+            wait(2)  -- Show the notification for 2 seconds
+            notifyText:Destroy()
+        end
     else
         currentBall = nil
         for _, espData in pairs(espParts) do
             espData.esp:Destroy()
         end
         espParts = {}
-    end
-
-    if featureEnabled.autoHit and currentBall then
-        -- Implement auto-hit functionality here if needed
-        -- For example: localPlayer.Character.HumanoidRootPart.Position = currentBall.Position
     end
 
     wait(0.1)
