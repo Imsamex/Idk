@@ -75,7 +75,7 @@ end
 local function createFeatureUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "FeatureUI"
-    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    screenGui.Parent = localPlayer:WaitForChild("PlayerGui") -- Parent the GUI to PlayerGui to make it visible
 
     local frame = Instance.new("Frame", screenGui)
     frame.Size = UDim2.new(0, 200, 0, 300)
