@@ -1,265 +1,37 @@
--- Variables
-local workspace = game:GetService("Workspace")
-local players = game:GetService("Players")
-local localPlayer = players.LocalPlayer
-local camera = workspace.CurrentCamera
-local ballName = "SoccerBall"
-local currentBall = nil
-local espParts = {}
-local featureEnabled = {
-    autoHit = false,
-    espBall = true,
-    hitbox = false,
-    viewBall = false
-}
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local Button = Instance.new("TextButton")
+local TextLabel = Instance.new("TextLabel")
 
--- Function to find the ball
-local function findBallInWorkspace()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == ballName then
-            return obj
-        end
-    end
-    return nil
-end
+-- Parent the UI to the Player's PlayerGui
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Function to set ball size
-local function setBallSize(ball, size)
-    ball.Size = size
-end
+-- UI Properties
+ScreenGui.ResetOnSpawn = false
 
--- Function to create/update ESP
-local function createOrUpdateESP(ball)
-    if espParts[ball] then return end
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+Frame.Size = UDim2.new(0, 200, 0, 100)
 
-    local espPart = Instance.new("BillboardGui")
-    espPart.Size = UDim2.new(0, 200, 0, 50)
-    espPart.AlwaysOnTop = true
-    espPart.Adornee = ball
-    espPart.Parent = ball
+Button.Parent = Frame
+Button.BackgroundColor3 = Color3.new(1, 0, 0)
+Button.Size = UDim2.new(0, 150, 0, 40)
+Button.Position = UDim2.new(0.5, -75, 0.5, -20)
+Button.Text = "Auto Parry"
 
-    local ballText = Instance.new("TextLabel")
-    ballText.Size = UDim2.new(1, 0, 0.3, 0)
-    ballText.Position = UDim2.new(0, 0, -0.2, 0)
-    ballText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ballText.TextScaled = true
-    ballText.Text = "Ball"
-    ballText.BackgroundTransparency = 1
-    ballText.Parent = espPart
+TextLabel.Parent = Frame
+TextLabel.BackgroundTransparency = 1
+TextLabel.Size = UDim2.new(1, 0, 0, 40)
+TextLabel.Position = UDim2.new(0, 0, 0, 10)
+TextLabel.Text = "Blade Ball Parry"
+TextLabel.TextColor3 = Color3.new(1, 1, 1)
+TextLabel.Font = Enum.Font.SourceSansBold
+TextLabel.TextSize = 20
 
-    local distanceText = Instance.new("TextLabel")
-    distanceText.Size = UDim2.new(1, 0, 0.3, 0)
-    distanceText.Position = UDim2.new(0, 0, 0.3, 0)
-    distanceText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    distanceText.TextScaled = true
-    distanceText.Text = "Distance: 0"
-    distanceText.BackgroundTransparency = 1
-    distanceText.Parent = espPart
-
-    espParts[ball] = { esp = espPart, distanceText = distanceText }
-
-    coroutine.wrap(function()
-        while ball and ball.Parent do
-            local distance = (localPlayer.Character.HumanoidRootPart.Position - ball.Position).Magnitude
-            distanceText.Text = "Distance: " .. math.floor(distance)
-            wait(0.1)
-        end
-        if espParts[ball] then
-            espParts[ball].esp:Destroy()
-            espParts[ball] = nil
-        end
-    end)()
-end
-
--- Function to create/update hitbox
-local function createOrUpdateHitbox(ball)
-    local hitbox = Instance.new("Part")
-    hitbox.Size = Vector3.new(20, 20, 20)  -- Set hitbox size
-    hitbox.Transparency = 1  -- Make hitbox invisible
-    hitbox.CanCollide = false
-    hitbox.Anchored = false
-    hitbox.Parent = workspace
-
-    local bodyPosition = Instance.new("BodyPosition")
-    bodyPosition.MaxForce = Vector3.new(4000, 4000, 4000)
-    bodyPosition.D = 1000
-    bodyPosition.P = 10000
-    bodyPosition.Parent = hitbox
-
-    coroutine.wrap(function()
-        while ball and ball.Parent do
-            hitbox.Position = ball.Position  -- Follow the ball
-            bodyPosition.Position = ball.Position
-            wait(0.1)
-        end
-        if hitbox then
-            hitbox:Destroy()
-        end
-    end)()
-
-    -- Change the ball size when the hitbox is active
-    setBallSize(ball, Vector3.new(20, 20, 20))  -- Resize the ball to 20x20x20
-end
-
--- Function to create feature menu GUI
-local function createFeatureMenu()
-    local playerGui = localPlayer:WaitForChild("PlayerGui")
-
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FeatureMenuGui"
-    screenGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 300)
-    frame.Position = UDim2.new(0, 0, 0, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    frame.Parent = screenGui
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0.2, 0)
-    title.Text = "Features"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.BackgroundTransparency = 1
-    title.TextScaled = true
-    title.Parent = frame
-
-    local autoHitButton = Instance.new("TextButton")
-    autoHitButton.Size = UDim2.new(1, 0, 0.2, 0)
-    autoHitButton.Position = UDim2.new(0, 0, 0.2, 0)
-    autoHitButton.Text = "Auto Hit: Off"
-    autoHitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoHitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    autoHitButton.TextScaled = true
-    autoHitButton.Parent = frame
-
-    local espBallButton = Instance.new("TextButton")
-    espBallButton.Size = UDim2.new(1, 0, 0.2, 0)
-    espBallButton.Position = UDim2.new(0, 0, 0.4, 0)
-    espBallButton.Text = "ESP Ball: On"
-    espBallButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espBallButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    espBallButton.TextScaled = true
-    espBallButton.Parent = frame
-
-    local hitboxButton = Instance.new("TextButton")
-    hitboxButton.Size = UDim2.new(1, 0, 0.2, 0)
-    hitboxButton.Position = UDim2.new(0, 0, 0.6, 0)
-    hitboxButton.Text = "Hitbox: Off"
-    hitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hitboxButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    hitboxButton.TextScaled = true
-    hitboxButton.Parent = frame
-
-    local viewBallButton = Instance.new("TextButton")
-    viewBallButton.Size = UDim2.new(1, 0, 0.2, 0)
-    viewBallButton.Position = UDim2.new(0, 0, 0.8, 0)
-    viewBallButton.Text = "View Ball: Off"
-    viewBallButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    viewBallButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    viewBallButton.TextScaled = true
-    viewBallButton.Parent = frame
-
-    autoHitButton.MouseButton1Click:Connect(function()
-        featureEnabled.autoHit = not featureEnabled.autoHit
-        autoHitButton.Text = "Auto Hit: " .. (featureEnabled.autoHit and "On" or "Off")
-    end)
-
-    espBallButton.MouseButton1Click:Connect(function()
-        featureEnabled.espBall = not featureEnabled.espBall
-        espBallButton.Text = "ESP Ball: " .. (featureEnabled.espBall and "On" or "Off")
-    end)
-
-    hitboxButton.MouseButton1Click:Connect(function()
-        featureEnabled.hitbox = not featureEnabled.hitbox
-        hitboxButton.Text = "Hitbox: " .. (featureEnabled.hitbox and "On" or "Off")
-        if featureEnabled.hitbox then
-            if currentBall then
-                createOrUpdateHitbox(currentBall)
-            end
-        elseif currentBall then
-            setBallSize(currentBall, Vector3.new(2, 2, 2))  -- Reset ball size if needed
-        end
-    end)
-
-    viewBallButton.MouseButton1Click:Connect(function()
-        featureEnabled.viewBall = not featureEnabled.viewBall
-        viewBallButton.Text = "View Ball: " .. (featureEnabled.viewBall and "On" or "Off")
-        if featureEnabled.viewBall and currentBall then
-            camera.CameraSubject = currentBall
-        elseif not featureEnabled.viewBall then
-            camera.CameraSubject = localPlayer.Character.HumanoidRootPart
-        end
-    end)
-end
-
--- Function to set ball velocity for scoring
-local function setBallVelocity(ball, direction, speed)
-    local bodyVelocity = ball:FindFirstChildOfClass("BodyVelocity") or Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = direction * speed
-    bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)  -- Adjust as needed
-    bodyVelocity.P = 10000
-    bodyVelocity.Parent = ball
-end
-
--- Modify the main loop to set the ball velocity when scoring
-while true do
-    local ball = findBallInWorkspace()
-    if ball and ball.Name == "SoccerBall" then
-        if not currentBall or currentBall ~= ball then
-            currentBall = ball
-            if featureEnabled.espBall then
-                -- Ensure ESP is updated or created for the current ball
-                if not espParts[currentBall] then
-                    createOrUpdateESP(currentBall)
-                end
-            end
-            if featureEnabled.hitbox then
-                createOrUpdateHitbox(currentBall)
-            end
-        end
-
-        if featureEnabled.espBall then
-            -- Ensure ESP is updated for the current ball
-            if not espParts[currentBall] then
-                createOrUpdateESP(currentBall)
-            end
-        end
-
-        if featureEnabled.viewBall then
-            camera.CameraSubject = currentBall
-        end
-
-        -- Set ball velocity to score points
-        if featureEnabled.autoHit and currentBall then
-            local direction = (Vector3.new(0, 0, -1) * math.random(0.5, 1) + Vector3.new(math.random(-1, 1), 0, math.random(-1, 1))).Unit
-            local speed = 50  -- Adjust the speed as needed
-            setBallVelocity(currentBall, direction, speed)
-
-            -- Notify where the ball is going
-            local notifyText = Instance.new("BillboardGui")
-            notifyText.Size = UDim2.new(0, 200, 0, 50)
-            notifyText.Adornee = currentBall
-            notifyText.AlwaysOnTop = true
-            notifyText.Parent = currentBall
-
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 1, 0)
-            textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-            textLabel.TextScaled = true
-            textLabel.BackgroundTransparency = 1
-            textLabel.Text = "Going in direction!"
-            textLabel.Parent = notifyText
-
-            wait(2)  -- Show the notification for 2 seconds
-            notifyText:Destroy()
-        end
-    else
-        currentBall = nil
-        for _, espData in pairs(espParts) do
-            espData.esp:Destroy()
-        end
-        espParts = {}
-    end
-
-    wait(0.1)
-end
+-- Button Functionality
+Button.MouseButton1Click:Connect(function()
+    -- Kick the player with a troll message
+    game.Players.LocalPlayer:Kick("Haha cry, you aren't getting any Blade Ball scripts!")
+end)
